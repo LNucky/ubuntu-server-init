@@ -44,7 +44,7 @@ ssh root@SERVER_IP
 ### Запуск через curl (рекомендуется)
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/server-init/main/install.sh) step
+bash <(curl -fsSL https://raw.githubusercontent.com/LNucky/server-init/main/install.sh) step
 ```
 
 После запуска скрипт запросит пароль нового пользователя.
@@ -60,7 +60,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/server-
 ### Передача пароля аргументом
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/server-init/main/install.sh) step 'MY_PASSWORD'
+bash <(curl -fsSL https://raw.githubusercontent.com/LNucky/server-init/main/install.sh) step 'MY_PASSWORD'
 ```
 
 > Не рекомендуется, так как пароль может остаться в истории команд.
@@ -70,7 +70,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/server-
 ### Запуск после клонирования репозитория
 
 ```
-git clone https://github.com/YOUR_GITHUB_USERNAME/server-init.git
+git clone https://github.com/LNucky/server-init.git
 
 cd server-init
 
