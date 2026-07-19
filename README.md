@@ -1,17 +1,19 @@
-# Server Init
+# Ubuntu Server Init
 
 Скрипт для автоматической первичной настройки Ubuntu-сервера.
 
 ## Что делает скрипт
 
 * Обновляет систему.
-* Устанавливает необходимые пакеты (`sudo`, `ufw`, `openssh-server`, `curl`).
+* Устанавливает необходимые пакеты (`sudo`, `ufw`, `openssh-server`, `curl`, `gnupg`).
 * Создаёт нового пользователя.
 * Добавляет пользователя в группу `sudo`.
 * Устанавливает пароль пользователя.
 * Переносит SSH-ключ из `/root/.ssh/authorized_keys`.
 * Настраивает права доступа для SSH.
 * Включает UFW и разрешает SSH-подключения.
+* Устанавливает Docker и Docker Compose из официального репозитория.
+* Добавляет пользователя в группу `docker`.
 * Отключает вход под `root`.
 * Отключает авторизацию по паролю через SSH.
 * Проверяет корректность конфигурации SSH.
@@ -44,7 +46,7 @@ ssh root@SERVER_IP
 ### Запуск через curl (рекомендуется)
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/LNucky/server-init/main/install.sh) step
+bash <(curl -fsSL https://raw.githubusercontent.com/LNucky/ubuntu-server-init/main/install.sh) step
 ```
 
 После запуска скрипт запросит пароль нового пользователя.
@@ -60,7 +62,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/LNucky/server-init/main/inst
 ### Передача пароля аргументом
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/LNucky/server-init/main/install.sh) step 'MY_PASSWORD'
+bash <(curl -fsSL https://raw.githubusercontent.com/LNucky/ubuntu-server-init/main/install.sh) step 'MY_PASSWORD'
 ```
 
 > Не рекомендуется, так как пароль может остаться в истории команд.
@@ -70,9 +72,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/LNucky/server-init/main/inst
 ### Запуск после клонирования репозитория
 
 ```
-git clone https://github.com/LNucky/server-init.git
+git clone https://github.com/LNucky/ubuntu-server-init.git
 
-cd server-init
+cd ubuntu-server-init
 
 chmod +x install.sh
 
@@ -89,10 +91,11 @@ chmod +x install.sh
 4. Запустить скрипт.
 5. Ввести пароль пользователя.
 6. Не закрывая текущую SSH-сессию, открыть новый терминал.
-7. Проверить подключение.
+7. Проверить подключение и Docker.
 
 ```
 ssh step@SERVER_IP
+docker run hello-world && docker compose version
 ```
 
 Если всё работает, настройка завершена.
@@ -113,6 +116,13 @@ ssh step@SERVER_IP
 sudo apt update
 ```
 
+Docker доступен без `sudo` после нового входа по SSH:
+
+```
+docker run hello-world
+docker compose version
+```
+
 SSH будет работать только по ключам.
 
 Настройки SSH:
@@ -128,7 +138,7 @@ PubkeyAuthentication yes
 ## Структура репозитория
 
 ```
-server-init/
+ubuntu-server-init/
 ├── install.sh
 └── README.md
 ```

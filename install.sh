@@ -34,6 +34,28 @@ USER_SSH_DIR="${USER_HOME}/.ssh"
 USER_AUTHORIZED_KEYS="${USER_SSH_DIR}/authorized_keys"
 SSHD_CONFIG_FILE="/etc/ssh/sshd_config.d/99-server-init.conf"
 
+detect_server_ip() {
+    local ip=""
+
+    if [[ -n "${SSH_CONNECTION:-}" ]]; then
+        read -r _ _ ip _ <<< "${SSH_CONNECTION}"
+    fi
+
+    if [[ -z "$ip" ]]; then
+        ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit }}')"
+    fi
+
+    if [[ -z "$ip" ]]; then
+        ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    fi
+
+    if [[ -z "$ip" ]]; then
+        ip="SERVER_IP"
+    fi
+
+    echo "$ip"
+}
+
 echo
 echo "=========================================="
 echo "Настройка нового сервера"
@@ -44,23 +66,24 @@ echo
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
 
-echo "[1/8] Обновление системы"
+echo "[1/9] Обновление системы"
 
 apt-get update
 
 apt-get dist-upgrade -y \
     -o Dpkg::Options::="--force-confold"
 
-echo "[2/8] Установка пакетов"
+echo "[2/9] Установка пакетов"
 
 apt-get install -y \
     sudo \
     ufw \
     openssh-server \
     curl \
-    ca-certificates
+    ca-certificates \
+    gnupg
 
-echo "[3/8] Создание пользователя"
+echo "[3/9] Создание пользователя"
 
 if id "$USERNAME" &>/dev/null; then
     echo "Пользователь ${USERNAME} уже существует."
@@ -75,7 +98,7 @@ usermod -aG sudo "$USERNAME"
 
 echo "${USERNAME}:${PASSWORD}" | chpasswd
 
-echo "[4/8] Перенос SSH-ключей"
+echo "[4/9] Перенос SSH-ключей"
 
 if [[ ! -s "$ROOT_AUTHORIZED_KEYS" ]]; then
     echo
@@ -113,7 +136,7 @@ fi
 
 echo "SSH-ключ успешно перенесён."
 
-echo "[5/8] Проверка sudo"
+echo "[5/9] Проверка sudo"
 
 cat > "/etc/sudoers.d/${USERNAME}" <<EOF
 ${USERNAME} ALL=(ALL:ALL) ALL
@@ -123,12 +146,42 @@ chmod 440 "/etc/sudoers.d/${USERNAME}"
 
 visudo -cf "/etc/sudoers.d/${USERNAME}"
 
-echo "[6/8] Настройка UFW"
+echo "[6/9] Настройка UFW"
 
 ufw allow OpenSSH
 ufw --force enable
 
-echo "[7/8] Настройка SSH"
+echo "[7/9] Установка Docker"
+
+apt-get install -y ca-certificates curl gnupg
+
+install -m 0755 -d /etc/apt/keyrings
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+    | tee /etc/apt/keyrings/docker.asc > /dev/null
+
+chmod a+r /etc/apt/keyrings/docker.asc
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+    | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+apt-get update
+
+apt-get install -y \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io \
+    docker-buildx-plugin \
+    docker-compose-plugin
+
+systemctl enable docker containerd
+
+usermod -aG docker "$USERNAME"
+
+docker run hello-world
+docker compose version
+
+echo "[8/9] Настройка SSH"
 
 mkdir -p /etc/ssh/sshd_config.d
 
@@ -146,7 +199,7 @@ if ! sshd -t; then
     exit 1
 fi
 
-echo "[8/8] Перезапуск SSH"
+echo "[9/9] Перезапуск SSH"
 
 systemctl enable ssh
 systemctl restart ssh
@@ -160,7 +213,11 @@ echo "Новый пользователь: ${USERNAME}"
 echo
 echo "Проверь подключение в НОВОМ терминале:"
 echo
-echo "ssh ${USERNAME}@SERVER_IP"
+echo "ssh ${USERNAME}@$(detect_server_ip)"
+echo
+echo "После входа проверь Docker:"
+echo
+echo "docker run hello-world && docker compose version"
 echo
 echo "Текущую root-сессию пока не закрывай,"
 echo "пока не убедишься, что новый вход работает."
