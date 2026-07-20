@@ -165,6 +165,23 @@ chmod a+r /etc/apt/keyrings/docker.asc
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
     | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
+if dpkg-query -W -f='${Status}' docker.io containerd runc 2>/dev/null \
+    | grep -q "install ok installed"; then
+    echo "Удаление Docker из репозитория Ubuntu (конфликтует с docker-ce)..."
+
+    systemctl stop docker.service docker.socket containerd 2>/dev/null || true
+    systemctl disable docker.socket 2>/dev/null || true
+
+    apt-get remove -y \
+        docker.io \
+        docker-doc \
+        docker-compose \
+        docker-compose-v2 \
+        podman-docker \
+        containerd \
+        runc
+fi
+
 apt-get update
 
 apt-get install -y \
@@ -174,11 +191,28 @@ apt-get install -y \
     docker-buildx-plugin \
     docker-compose-plugin
 
-systemctl enable docker containerd
+systemctl daemon-reload
+systemctl enable containerd docker
+systemctl start containerd
+systemctl start docker
+
+for _ in $(seq 1 30); do
+    if docker info >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
+
+if ! docker info >/dev/null 2>&1; then
+    echo
+    echo "Ошибка: Docker daemon не запустился."
+    systemctl status docker --no-pager || true
+    exit 1
+fi
 
 usermod -aG docker "$USERNAME"
 
-docker run hello-world
+docker run --rm hello-world
 docker compose version
 
 echo "[8/9] Настройка SSH"
