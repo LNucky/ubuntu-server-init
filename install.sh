@@ -227,6 +227,10 @@ PubkeyAuthentication yes
 UsePAM yes
 EOF
 
+# На свежей системе каталог ещё не создан: systemd делает это только
+# при старте ssh, а sshd -t проверяет его сразу и из-за этого падает.
+install -d -m 0755 /run/sshd
+
 if ! sshd -t; then
     echo "Ошибка в SSH-конфигурации."
     rm -f "$SSHD_CONFIG_FILE"
