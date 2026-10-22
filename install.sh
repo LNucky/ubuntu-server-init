@@ -19,8 +19,27 @@ if [[ -z "$USERNAME" ]]; then
 fi
 
 if [[ -z "$PASSWORD" ]]; then
-    read -rsp "Введите пароль для пользователя ${USERNAME}: " PASSWORD
-    echo
+    while true; do
+        read -rsp "Введите пароль для пользователя ${USERNAME}: " PASSWORD
+        echo
+        read -rsp "Повторите пароль: " PASSWORD_CONFIRM
+        echo
+
+        if [[ -z "$PASSWORD" ]]; then
+            echo "Пароль не может быть пустым."
+            echo
+            continue
+        fi
+
+        if [[ "$PASSWORD" == "$PASSWORD_CONFIRM" ]]; then
+            break
+        fi
+
+        echo "Пароли не совпадают. Попробуйте ещё раз."
+        echo
+    done
+
+    unset PASSWORD_CONFIRM
 fi
 
 if [[ "$USERNAME" == "root" ]]; then
