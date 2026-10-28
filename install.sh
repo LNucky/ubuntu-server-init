@@ -120,12 +120,35 @@ echo "${USERNAME}:${PASSWORD}" | chpasswd
 echo "[4/9] Перенос SSH-ключей"
 
 if [[ ! -s "$ROOT_AUTHORIZED_KEYS" ]]; then
+    server_ip="$(detect_server_ip)"
+
     echo
     echo "Ошибка: файл ${ROOT_AUTHORIZED_KEYS} отсутствует или пуст."
-    echo "SSH-настройки не будут изменены."
+    echo "Дальнейшая настройка остановлена."
+    echo "Текущий вход под root по-прежнему работает."
     echo
-    echo "Добавь public SSH key root-пользователю при создании сервера"
-    echo "и запусти скрипт повторно."
+    echo "Пользователь ${USERNAME} уже создан. Когда ключ будет на месте,"
+    echo "запусти эту же команду ещё раз и введи пароль заново."
+    echo
+    echo "На своём компьютере выполни:"
+    echo
+    echo "  ssh-keygen -t ed25519"
+    echo "  ssh-copy-id root@${server_ip}"
+    echo
+    echo "Первая команда нужна только если ключа ещё нет."
+    echo "На вопросы о файле и парольной фразе можно нажимать Enter."
+    echo
+    echo "Если ssh-copy-id не подходит, выведи ключ на компьютере:"
+    echo
+    echo "  cat ~/.ssh/id_ed25519.pub || cat ~/.ssh/id_rsa.pub"
+    echo
+    echo "Скопируй одну строку и вставь её на сервере:"
+    echo
+    echo "  mkdir -p /root/.ssh"
+    echo "  chmod 700 /root/.ssh"
+    echo "  nano ${ROOT_AUTHORIZED_KEYS}"
+    echo "  chmod 600 ${ROOT_AUTHORIZED_KEYS}"
+    echo
     exit 1
 fi
 
